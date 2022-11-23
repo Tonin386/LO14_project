@@ -28,9 +28,16 @@ trap nettoyage EXIT
 
 
 function accept-loop() {
-   while true; do
-	interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
-    done
+	next=true
+   while $next; do
+		interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
+		if [[ $(head last | grep exit) != "" ]]
+		then
+			next=false
+		else
+			next=true
+		fi
+   done
 }
 
 # La fonction interaction lit les commandes du client sur entrée standard 
@@ -45,10 +52,11 @@ function accept-loop() {
 # si elle existe; sinon elle envoie une réponse d'erreur.                    
 
 function interaction() {
-    local cmd args
-    while true; do
-		echo -n user@machine\>
+   local cmd args
+ 	while true; do
+		echo -n "user@machine\> "
 		read cmd args || exit -1
+		echo $cmd > last
 		fun="commande-$cmd"
 		if [ "$(type -t $fun)" = "function" ]; then
 		    $fun $args
@@ -105,6 +113,7 @@ function commande-write() {
 function commande-exit() {
 	echo "Déconnexion du serveur..."
 	echo "Appuyez sur RETURN pour valider."
+	echo "exit" > last
 	exit -1
 }
 

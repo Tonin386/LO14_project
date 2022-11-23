@@ -22,7 +22,6 @@ then
 				# 	echo "Client server already running!"
 				# fi
 				# nc localhost 8080 #Connexion au serveur de machines virtuelles
-				# pkill -f server_client.sh #On tue le serveur une fois l'exécution terminée
 			else
 				echo "Connexion impossible."
 				exit -1
@@ -34,18 +33,38 @@ then
 	then
 		#TODO: ajouter le système de login
 		shift
-		#TOUT CE QUI SUIT EST OBSOLETE
-		# echo "Entrée dans le mode admin..."
-		# if [ $(ps a | grep -c server_admin) -ge 0 ] #Si le serveur n'est pas lancé
-		# then
-		# 	./server_admin.sh 8081& #Lancement du réseau de machines virtuelles
-		# 	sleep 1
-		# else
-		# 	echo "Admin server already running!"
-		# fi
+		echo "Veuillez entrer le mot de passe administrateur : "
+		read pwd
+		adminPwd=$(echo $(head etc/shadow | sed 's/root://') | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+		if [[ $adminPwd == $pwd ]]
+		then
+			echo "Les mots de passe correspondent. Connexion à la machine hostroot."
+			port=$(more etc/hosts | grep hostroot | egrep -o '[0-9]{4}')
+			#On doit vérifier que le serveur n'est pas déjà en train d'être exécuté.
+
+			state=$(nc -vz localhost $port 2>&1 | grep refused)
+			if [[ $state != "" ]]
+			then
+				echo "Lancement du serveur de la machine hostroot"
+				./server_admin.sh $port&
+				sleep 1
+			else
+				echo "La machine admin est déjà lancée."
+			fi
+
+			nc localhost $port
+
+		else
+			echo "Mot de passe incorrect."
+			exit -1
+		fi
 	else
 		echo "Mode inconnu."
 	fi
 else
 	echo "Utilisez : rvsh -mode [...]"
 fi
+
+
+#Problemes : impossible de connecter deux utilisateurs simultanément sur la même machine avec le script actuel
+#Solution envisagée : créer un serveur par connexion, gérer les utilisateurs connectés simultanément en écrivant dans des fichiers que l'on nettoie au fur et à mesure des déconnexions.

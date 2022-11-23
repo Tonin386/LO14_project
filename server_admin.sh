@@ -28,9 +28,16 @@ trap nettoyage EXIT
 
 
 function accept-loop() {
-   while true; do
-	interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
-    done
+	next=true
+   while $next; do
+		interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
+		if [[ $(head last | grep exit) != "" ]]
+		then
+			next=false
+		else
+			next=true
+		fi
+   done
 }
 
 # La fonction interaction lit les commandes du client sur entrée standard 
@@ -45,44 +52,56 @@ function accept-loop() {
 # si elle existe; sinon elle envoie une réponse d'erreur.                    
 
 function interaction() {
-    local cmd args
-    while true; do
-	echo -n user@machine\>
-	read cmd args || exit -1
-	fun="commande-$cmd"
-	if [ "$(type -t $fun)" = "function" ]; then
-	    $fun $args
-	else
-	    commande-non-comprise $fun $args
-	fi
+   local cmd args
+ 	while true; do
+		echo -n "root@hostroot\> "
+		read cmd args || exit -1
+		echo $cmd > last
+		fun="commande-$cmd"
+		if [ "$(type -t $fun)" = "function" ]; then
+		    $fun $args
+		else
+		    commande-non-comprise $fun $args
+		fi
     done
 }
 
 # Les fonctions implémentant les différentes commandes du serveur
 
-
 function commande-non-comprise () {
-   echo "Commande inconnue"
+	echo "Commande inconnue"
 }
 
-function commande-host() {
-	
+function commande-host() { #Ajoute une machine sur le réseau
+	if [[ $# -eq 1 ]]
+	then
+		lastPort=$(tail etc/hosts -n 1 | egrep -o '[0-9]{4}')
+		echo "$1:$((lastPort+1)):" >> etc/hosts
+		echo "La machine $1 a été ajoutée au réseau. Elle utilise le port $((lastPort+1))."
+	else
+		echo "Utilisez : host nom_machine"
+	fi
 }
 
-function commande-user() {
-
+function commande-user() { #Ajoute un utilisateur sur le réseau
+	echo "To do"
 }
 
-function commande-wall() {
+function commande-wall() { #Envoie un message à tous les utilisateurs connectés
+	echo "To do"
+}
 
+function commande-afinger() {
+	echo "To do"
 }
 
 function commande-exit() {
 	echo "Déconnexion du serveur..."
 	echo "Appuyez sur RETURN pour valider."
+	echo "exit" > last
 	exit -1
 }
 
 # On accepte et traite les connexions
 
-accept-loop
+accept-loop	
