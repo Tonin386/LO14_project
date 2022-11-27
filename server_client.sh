@@ -34,6 +34,8 @@ function accept-loop() {
 		if [[ $(head last | grep exit) != "" ]]
 		then
 			next=false
+			#Retirer le serveur de la liste des serveurs en cours d'exéuction
+			sed "/$PORT/d" etc/livehosts -i
 		else
 			next=true
 		fi

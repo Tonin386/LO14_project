@@ -8,10 +8,10 @@ then
 		if [ $# -ge 2 ]
 		then
 			echo "Entrée dans le mode connect"
-			if [[ $(more etc/hosts | grep $1 | grep :$2:) != "" ]]
+			if [[ $(cat etc/hosts | grep $1 | grep :$2:) != "" ]]
 			then
 				echo "L'utilisateur peut se connecter à la machine !"
-				port=$(more etc/hosts | grep $1 | egrep -o '[0-9]{4}')
+				port=$(cat etc/hosts | grep $1 | egrep -o '[0-9]{4}')
 				echo "La connexion virtuelle se fait sur le port : $port"
 				#TOUT CE QUI SUIT EST OBSOLETE
 				# if [ $(ps a | grep -c server_client) -ge 0 ] #Si le serveur n'est pas lancé
@@ -39,19 +39,22 @@ then
 		if [[ $adminPwd == $pwd ]]
 		then
 			echo "Les mots de passe correspondent. Connexion à la machine hostroot."
-			port=$(more etc/hosts | grep hostroot | egrep -o '[0-9]{4}')
-			#On doit vérifier que le serveur n'est pas déjà en train d'être exécuté.
+			port=$(tail -n 1 etc/livehosts | egrep -o '[0-9]{4}')
 
-			state=$(nc -vz localhost $port 2>&1 | grep refused)
-			if [[ $state != "" ]]
+			if [[ $port = "" ]]
 			then
-				echo "Lancement du serveur de la machine hostroot"
-				./server_admin.sh $port&
-				sleep 1
+				port=8000
 			else
-				echo "La machine admin est déjà lancée."
+				port=$(($port+1))
 			fi
 
+			signature="hostroot:$port"
+			echo $signature >> etc/livehosts
+
+			echo "Lancement du serveur de la machine hostroot"
+			./server_admin.sh $port&
+			sleep 1
+			
 			nc localhost $port
 
 		else
@@ -66,5 +69,9 @@ else
 fi
 
 
-#Problemes : impossible de connecter deux utilisateurs simultanément sur la même machine avec le script actuel
-#Solution envisagée : créer un serveur par connexion, gérer les utilisateurs connectés simultanément en écrivant dans des fichiers que l'on nettoie au fur et à mesure des déconnexions.
+#Problemes : 
+# - impossible de connecter deux utilisateurs simultanément sur la même machine avec le script actuel
+# - chaque machine utilise un seul port... Impossible de lancer deux serveurs sur le même port
+#Solutions envisagées : 
+# - créer un serveur par connexion, gérer les utilisateurs connectés simultanément en écrivant dans des fichiers que l'on nettoie au fur et à mesure des déconnexions.
+# - ???

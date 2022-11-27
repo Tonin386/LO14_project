@@ -34,6 +34,8 @@ function accept-loop() {
 		if [[ $(head last | grep exit) != "" ]]
 		then
 			next=false
+			#Retirer le serveur de la liste des serveurs en cours d'exéuction
+			sed "/$PORT/d" etc/livehosts -i
 		else
 			next=true
 		fi
@@ -75,16 +77,43 @@ function commande-non-comprise () {
 function commande-host() { #Ajoute une machine sur le réseau
 	if [[ $# -eq 1 ]]
 	then
-		lastPort=$(tail etc/hosts -n 1 | egrep -o '[0-9]{4}')
-		echo "$1:$((lastPort+1)):" >> etc/hosts
-		echo "La machine $1 a été ajoutée au réseau. Elle utilise le port $((lastPort+1))."
+		echo "$1:" >> etc/hosts
+		echo "La machine $1 a été ajoutée au réseau."
 	else
 		echo "Utilisez : host nom_machine"
 	fi
 }
 
+function commande-hosts() {
+	# while read line
+	# do
+	# 	sed "s/://" line
+	# done < etc/hosts
+	sed "s/://" etc/hosts
+}
+
 function commande-user() { #Ajoute un utilisateur sur le réseau
-	echo "To do"
+	if [[ $# -ge 2 ]]
+	then
+		user=$1
+		shift
+		for arg in $@
+		do
+			if [[ $(echo $(cat etc/hosts | grep $arg | grep $user)) != "" ]]
+			then
+				echo "L'utilisateur $user est déjà enregistré sur la machine $arg."
+			elif [[ $(echo $(cat etc/hosts | grep $arg)) != "" ]]
+			then
+				sed "s/^$arg:.*$/&$user:/" etc/hosts -i
+				echo "L'utilisateur $user a été ajouté à la machine $arg."
+			else
+				echo "La machine $arg n'existe pas."
+			fi
+		done
+	else
+		echo "Utilisez : user nouvel_utils machine1 machine2 ..."
+	fi
+
 }
 
 function commande-wall() { #Envoie un message à tous les utilisateurs connectés
