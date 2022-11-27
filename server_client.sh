@@ -13,7 +13,7 @@ PORT="$1"
 
 # Déclaration du tube
 
-FIFO="/tmp/$USER-fifo-$$"
+FIFO="tmp/$USER-fifo-$$"
 
 # Il faut détruire le tube quand le serveur termine pour éviter de
 # polluer /tmp.  On utilise pour cela une instruction trap pour être sur de
@@ -110,6 +110,11 @@ function commande-finger() {
 
 function commande-write() {
 
+}
+
+function commande-receive() {
+	echo " "
+	echo "$@"
 }
 
 function commande-exit() {

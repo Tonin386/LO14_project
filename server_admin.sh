@@ -13,7 +13,7 @@ PORT="$1"
 
 # Déclaration du tube
 
-FIFO="/tmp/$USER-fifo-$$"
+FIFO="tmp/$USER-fifo-$PORT"
 
 # Il faut détruire le tube quand le serveur termine pour éviter de
 # polluer /tmp.  On utilise pour cela une instruction trap pour être sur de
@@ -31,11 +31,12 @@ function accept-loop() {
 	next=true
    while $next; do
 		interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
-		if [[ $(head last | grep exit) != "" ]]
+		if [[ $(head tmp/last | grep exit) != "" ]]
 		then
 			next=false
 			#Retirer le serveur de la liste des serveurs en cours d'exéuction
 			sed "/$PORT/d" etc/livehosts -i
+			rm tmp/last
 		else
 			next=true
 		fi
@@ -58,7 +59,7 @@ function interaction() {
  	while true; do
 		echo -n "root@hostroot\> "
 		read cmd args || exit -1
-		echo $cmd > last
+		echo $cmd > tmp/last
 		fun="commande-$cmd"
 		if [ "$(type -t $fun)" = "function" ]; then
 		    $fun $args
@@ -75,6 +76,7 @@ function commande-non-comprise () {
 }
 
 function commande-host() { #Ajoute une machine sur le réseau
+	#TODO: Ajouter la vérification que la machine n'existe pas déjà
 	if [[ $# -eq 1 ]]
 	then
 		echo "$1:" >> etc/hosts
@@ -89,6 +91,7 @@ function commande-hosts() {
 	# do
 	# 	sed "s/://" line
 	# done < etc/hosts
+	#TODO: Améliorer la fonctionnalité
 	sed "s/://" etc/hosts
 }
 
@@ -117,7 +120,16 @@ function commande-user() { #Ajoute un utilisateur sur le réseau
 }
 
 function commande-wall() { #Envoie un message à tous les utilisateurs connectés
-	echo "To do"
+	if [ $# -ge 1 ]
+	then
+		online=$(echo $(ls tmp | grep fifo))
+		for u in $online
+		do
+			echo "receive $@" >> tmp/$u
+		done
+	else
+		echo "Utilisez : wall message"
+	fi
 }
 
 function commande-afinger() {
@@ -127,8 +139,13 @@ function commande-afinger() {
 function commande-exit() {
 	echo "Déconnexion du serveur..."
 	echo "Appuyez sur RETURN pour valider."
-	echo "exit" > last
+	echo "exit" > tmp/last
 	exit -1
+}
+
+function commande-receive() {
+	echo " "
+	echo "$@"
 }
 
 # On accepte et traite les connexions
