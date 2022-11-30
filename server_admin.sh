@@ -134,6 +134,7 @@ function commande-wall() { #Envoie un message à tous les utilisateurs connecté
 
 function commande-afinger() {
 	echo "To do"
+	echo "Voilà la commande fonctionne"
 }
 
 function commande-exit() {
