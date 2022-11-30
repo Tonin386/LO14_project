@@ -13,15 +13,6 @@ then
 				echo "L'utilisateur peut se connecter à la machine !"
 				port=$(cat etc/hosts | grep $1 | egrep -o '[0-9]{4}')
 				echo "La connexion virtuelle se fait sur le port : $port"
-				#TOUT CE QUI SUIT EST OBSOLETE
-				# if [ $(ps a | grep -c server_client) -ge 0 ] #Si le serveur n'est pas lancé
-				# then
-				# 	./server_client.sh 8080& #Lancement du réseau de machines virtuelles
-				# 	sleep 1
-				# else
-				# 	echo "Client server already running!"
-				# fi
-				# nc localhost 8080 #Connexion au serveur de machines virtuelles
 			else
 				echo "Connexion impossible."
 				exit -1
@@ -54,7 +45,7 @@ then
 			echo "Lancement du serveur de la machine hostroot"
 			./server_admin.sh $port&
 			sleep 1
-			
+
 			nc localhost $port
 
 		else
@@ -67,11 +58,3 @@ then
 else
 	echo "Utilisez : rvsh -mode [...]"
 fi
-
-
-#Problemes : 
-# - impossible de connecter deux utilisateurs simultanément sur la même machine avec le script actuel
-# - chaque machine utilise un seul port... Impossible de lancer deux serveurs sur le même port
-#Solutions envisagées : 
-# - créer un serveur par connexion, gérer les utilisateurs connectés simultanément en écrivant dans des fichiers que l'on nettoie au fur et à mesure des déconnexions.
-# - ???
