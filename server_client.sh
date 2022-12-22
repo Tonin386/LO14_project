@@ -80,36 +80,42 @@ function commande-convert() {
 }
 
 function commande-who() {
-
+	echo "En construction"
+	#TODO : recuperer le nom de la machine sur laquelle est co l'utilisateur et le passer par la variable
+	awk -v var="hostroot" -f fichawk/who etc/liveusers
 }
 
 function commande-rusers() {
-
+	awk -f fichawk/rusers etc/liveusers
 }
 
 function commande-rhost() {
-
+	awk -f fichawk/rhost etc/hosts
 }
 
 function commande-rconnect() {
-
+	echo "En construction"
 }
 
 function commande-su() {
-
+	echo "En construction"
+	#TODO : Checker si 2 args (nom utilisateur + mdp) > checker si nom utilisateur peut se connecter sur la machine et existe > checker si mdp correct > connecter sur le profil (changer infos dans liveusers + dans la console)
+	#Changer dans liveusers :
+	#awk -v var=nom_actuel -v var1=nom_modifie -f fichawk/su etc/liveusers > etc/temp
+	#echo etc/temp > etc/liveusers
 }
 
 
 function commande-passwd() {
-
+	echo "En construction"
 }
 
 function commande-finger() {
-
+	awk -v var=$1 -f fichawk/finger etc/passwd
 }
 
 function commande-write() {
-
+	echo "En construction"
 }
 
 function commande-receive() {
