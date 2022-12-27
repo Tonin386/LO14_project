@@ -1,0 +1,2 @@
+BEGIN{FS=":"}
+$1~var{printf("Login : %s\nName : %s\nHome directory : %s\nCommand : %s\n\n",$1,$5,$6,$7)}
