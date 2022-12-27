@@ -1,2 +1,0 @@
-BEGIN{FS="+";print("\nVoici la liste des utilisateurs connectés sur le réseau et les informations liées à leur connexion :\n")}
-{n=split($NF,tab,"|");printf("Nom : %s\nMachine : %s\nHeure : %s\nDate : %s\n\n", $1,tab[1],tab[3],tab[2])}

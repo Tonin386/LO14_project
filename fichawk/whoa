@@ -1,4 +1,0 @@
-BEGIN{FS="+";printf("\nListe des personnes actuellement connectées sur la machine %s : \n\n",var)}
-$NF~var{n=split($NF,tab,"|");printf("Nom : %s\nHeure : %s\nDate : %s\n\n", $1,tab[3],tab[2])}
-
-#awk -v var="nom_machine" -f testwho ./etc/liveusers
