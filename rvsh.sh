@@ -13,7 +13,7 @@ then
 				echo "L'utilisateur peut se connecter à la machine !"
 				port=$(cat etc/hosts | grep $1 | egrep -o '[0-9]{4}')
 				echo "La connexion virtuelle se fait sur le port : $port"
-				./server_client.sh $port&
+				./server_client.sh $port $2&
 				sleep 1
 				nc localhost $port
 			else

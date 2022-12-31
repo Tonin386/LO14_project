@@ -4,12 +4,21 @@
 # Le script doit être invoqué avec l'argument :                   
 # PORT   le port sur lequel le serveur attend ses clients 
 
-if [ $# -ne 1 ]; then
+if [ $# -lt 1 ]; then
     echo "usage: $(basename $0) PORT"
     exit -1
 fi
 
 PORT="$1"
+machine="$(cat etc/hosts|grep $PORT|cut -d':' -f1)"
+
+if [ $# -eq 1 ]; then
+	user="utilisateur"
+else
+	user=$2
+fi
+
+
 
 # Déclaration du tube
 
@@ -56,7 +65,7 @@ function accept-loop() {
 function interaction() {
    local cmd args
  	while true; do
-		echo -n "user@machine\> "
+		echo -n "$user@$machine\> "
 		read cmd args || exit -1
 		echo $cmd > last
 		fun="commande-$cmd"
@@ -80,9 +89,7 @@ function commande-convert() {
 }
 
 function commande-who() {
-	echo "En construction"
-	#TODO : recuperer le nom de la machine sur laquelle est co l'utilisateur et le passer par la variable
-	awk -v var="hostroot" -f fichawk/who etc/liveusers
+	awk -v var="$machine" -f fichawk/who etc/liveusers
 }
 
 function commande-rusers() {
@@ -98,7 +105,6 @@ function commande-rconnect() {
 }
 
 function commande-su() {
-	echo "En construction"
 	if test $# -eq 2
 	then
 		echo "Vérification du droit de l'utilisateur de se connecter sur cette  machine"
@@ -112,10 +118,11 @@ function commande-su() {
 				echo "Le mot de passe entré est correct, reconnexion en cours..."
 
 				#TODO : Changer dans liveusers :
-				#awk -v var=nom_actuel -v var1=nom_modifie -f fichawk/su etc/liveusers > etc/temp
-				#echo etc/temp > etc/liveusers
+				awk -v var=$user -v var1=$1 -f fichawk/su etc/liveusers > etc/temp
+				cat etc/temp > etc/liveusers
 				
 				#TODO : Changer l'utilisateur dans le prompt
+				user=$1
 
 			else
 				echo "Mot de passe incorrect !"
@@ -139,6 +146,8 @@ function commande-passwd() {
 		then
 			echo "Les mots de passe correspondent."
 			echo "Remplacement de l'ancien mot de passe..."
+			nouveau=$(echo $1|openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+			sed "s/$user:$ancien/$user:$nouveau/" etc/shadow
 			#TODO : changer le mdp dans etc/shadow
 		else
 			echo "Le mot de passe entré ne correspond pas au mot de passe actuel !"
