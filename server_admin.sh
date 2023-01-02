@@ -2,18 +2,18 @@
 
 # Ce script implémente un serveur.  
 # Le script doit être invoqué avec l'argument :                   
-# PORT   le port sur lequel le serveur attend ses clients 
+# port   le port sur lequel le serveur attend ses clients 
 
 if [ $# -ne 1 ]; then
-    echo "usage: $(basename $0) PORT"
+    echo "usage: $(basename $0) port"
     exit -1
 fi
 
-PORT="$1"
+port="$1"
 
 # Déclaration du tube
 
-FIFO="tmp/hostroot-root-fifo-$PORT"
+FIFO="tmp/hostroot-root-fifo-$port"
 
 # Il faut détruire le tube quand le serveur termine pour éviter de
 # polluer /tmp.  On utilise pour cela une instruction trap pour être sur de
@@ -30,12 +30,12 @@ trap nettoyage EXIT
 function accept-loop() {
 	next=true
    while $next; do
-		interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
+		interaction < "$FIFO" | netcat -l -p "$port" > "$FIFO"
 		if [[ $(head tmp/last | grep exit) != "" ]]
 		then
 			next=false
-			#Retirer le serveur de la liste des serveurs en cours d'exéuction
-			sed "/$PORT/d" etc/livehosts -i
+			#Retirer le serveur de la liste des serveurs en cours d'exécution
+			sed "/$port/d" etc/livehosts -i
 			rm tmp/last
 		else
 			next=true

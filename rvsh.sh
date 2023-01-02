@@ -13,7 +13,7 @@ then
 				echo "L'utilisateur existe sur la machine."
 				echo "Veuillez entrer votre mot de passe : "
 				read pwd
-				userPwd=$(echo $(head etc/shadow | grep $2 | sed "s/$2://") | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+				userPwd=$(echo $(cat etc/shadow | grep $2 | sed "s/$2://") | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
 				if [[ $userPwd == $pwd ]]
 				then
 					echo "Mot de passe correct."
