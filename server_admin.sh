@@ -103,6 +103,7 @@ function commande-user() { #Ajoute un utilisateur sur le réseau
 		pwd=$1
 		cryptedPwd=$(echo $pwd | openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
 		echo $user:$cryptedPwd >> etc/shadow
+		echo "$user|x|||$(date)" >> etc/passwd
 		shift
 		for arg in $@
 		do
@@ -120,7 +121,21 @@ function commande-user() { #Ajoute un utilisateur sur le réseau
 	else
 		echo "Utilisez : user nouvel_utils pass machine1 machine2 ..."
 	fi
+}
 
+function commande-deluser() { 
+	if [[ $# -ge 1 ]]
+	then
+		for arg in $@
+		do
+			rm "users/$arg"
+			sed "s/$user://" etc/hosts -i
+			sed "s/$user:.*$//" etc/shadow -i
+			sed "s/$user|.*$//" etc/passwd -i
+		done
+	else
+		echo "Usage : deluser util1 util2 ..."
+	fi
 }
 
 function commande-wall() { #Envoie un message à tous les utilisateurs connectés

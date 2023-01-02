@@ -165,7 +165,6 @@ function commande-su() {
 	fi
 }
 
-
 function commande-passwd() {
 	echo "En construction"
 	if test $# -eq 2
@@ -197,17 +196,17 @@ function commande-write() {
 		destinataireNom=$(echo $1 | sed "s/\@.*$//")
 		destinataireMachine=$(echo $1 | sed "s/.*\@//")
 		echo "Vérification de la connexion du destinataire ..."
-		if [[ $(echo $(cat etc/livehosts | grep $destinataireNom)) != "" ]]
+		if [[ $(echo $(cat etc/livehosts | grep $destinataireNom | grep $destinataireMachine)) != "" ]]
 		then
 			destinataireMachinePort=$(cat etc/livehosts | grep $destinataireMachine:$destinataireNom | sed "s/$destinataireMachine:$destinataireNom://")
 			echo "Le destinataire est connecté. Envoi du message..."
 			shift
-			echo "receive $@" >> "tmp/$destinataireMachine-$destinataireNom-fifo-$destinataireMachinePort"
+			echo "receive $user@$machine: $@" >> "tmp/$destinataireMachine-$destinataireNom-fifo-$destinataireMachinePort"
 		else
-			echo "L'utilisateur n'est pas connecté !"
+			echo "L'utilisateur n'est pas connecté sur cette machine !"
 		fi
 	else
-		echo "Usage : write nom_destinataire message"
+		echo "Usage : write nom_destinataire@machine message"
 	fi
 }
 
