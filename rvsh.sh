@@ -28,6 +28,10 @@ then
 
 					signature="$1:$2:$port"
 					echo $signature >> etc/livehosts
+					dates=$(date | egrep '.*[0-9]{4}' -o)
+					heure=$(date | cut -d' ' -f5)
+					infos="$2|$1|$dates|$heure"
+					echo $infos >> etc/liveusers
 					./server_client.sh $port $2&
 					sleep 1
 					nc localhost $port

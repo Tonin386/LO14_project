@@ -115,7 +115,11 @@ function commande-rconnect() {
 				echo "Le mot de passe entré est correct, reconnexion en cours..."
 
 				sed "s/$machine:$user:$port/$1:$user:$port/" etc/livehosts -i
-
+				
+				dates=$(date | egrep '.*[0-9]{4}' -o)
+				heure=$(date | cut -d' ' -f5)
+				sed "s/$user|$machine.*/$user|$1|$dates|$heure/" etc/liveusers -i
+				
 				echo "$machine" >> "tmp/$user-route"
 				rm $FIFO
 				machine=$1
@@ -147,7 +151,10 @@ function commande-su() {
 				echo "Le mot de passe entré est correct, reconnexion en cours..."
 
 				sed "s/$machine:$user:$port/$machine:$1:$port/" etc/livehosts -i
-				cat etc/temp > etc/liveusers
+				
+				dates=$(date | egrep '.*[0-9]{4}' -o)
+				heure=$(date | cut -d' ' -f5)
+				sed "s/$user|$machine.*/$1|$machine|$dates|$heure/" etc/liveusers -i
 
 				user=$1
 				rm $FIFO
@@ -226,6 +233,11 @@ function commande-exit() {
 
 		new_machine=$(tail tmp/$user-route -n 1)
 		sed "s/$machine:$user:$port/$new_machine:$user:$port/" etc/livehosts -i
+		
+
+		dates=$(date | egrep '.*[0-9]{4}' -o)
+		heure=$(date | cut -d' ' -f5)
+		sed "s/$user|$machine.*/$user|$new_machine|$dates|$heure/" etc/liveusers -i
 		machine=$new_machine
 
 		echo $(head -n -1 "tmp/$user-route") > "tmp/$user-route"
@@ -238,6 +250,7 @@ function commande-exit() {
 			rm "tmp/$user-route"
 		fi
 	else
+		sed "/$user|$machine.*/d" etc/liveusers -i
 		echo "Déconnexion du serveur..."
 		echo "Appuyez sur RETURN pour valider."
 		exit -1
