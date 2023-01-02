@@ -10,7 +10,7 @@ if [ $# -lt 1 ]; then
 fi
 
 PORT="$1"
-machine="$(cat etc/hosts|grep $PORT|cut -d':' -f1)"
+machine="$(cat etc/livehosts|grep $PORT|cut -d':' -f1)"
 
 if [ $# -eq 1 ]; then
 	user="utilisateur"
@@ -22,7 +22,7 @@ fi
 
 # Déclaration du tube
 
-FIFO="tmp/$USER-fifo-$$"
+FIFO="tmp/$machine-$user-fifo-$PORT"
 
 # Il faut détruire le tube quand le serveur termine pour éviter de
 # polluer /tmp.  On utilise pour cela une instruction trap pour être sur de
@@ -40,11 +40,12 @@ function accept-loop() {
 	next=true
    while $next; do
 		interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
-		if [[ $(head last | grep exit) != "" ]]
+		if [[ $(head tmp/last | grep exit) != "" ]]
 		then
 			next=false
-			#Retirer le serveur de la liste des serveurs en cours d'exéuction
+			#Retirer le serveur de la liste des serveurs en cours d'exécution
 			sed "/$PORT/d" etc/livehosts -i
+			rm tmp/last
 		else
 			next=true
 		fi
@@ -67,7 +68,7 @@ function interaction() {
  	while true; do
 		echo -n "$user@$machine\> "
 		read cmd args || exit -1
-		echo $cmd > last
+		echo $cmd > tmp/last
 		fun="commande-$cmd"
 		if [ "$(type -t $fun)" = "function" ]; then
 		    $fun $args
@@ -128,7 +129,7 @@ function commande-su() {
 				echo "Mot de passe incorrect !"
 			fi
 		else
-			echo "L'utilisateur n'est pas autorisé à se connecter sur la machine !"
+			echo "L'utilisateur n'est pas autorisé à se connecter sur la machine."
 		fi
 	else
 		echo "Usage : su nom_utilisateur mot_de_passe"
@@ -141,14 +142,14 @@ function commande-passwd() {
 	if test $# -eq 2
 	then
 		echo "Vérification de la correspondance des mots de passe"
-		ancien=$(echo $(cat etc/shadow | grep toto: | cut -d':' -f2) | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+		ancien=$(echo $(head etc/shadow | grep $user | sed "s/$user://") | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
 		if [[ $ancien == $1 ]]
 		then
 			echo "Les mots de passe correspondent."
 			echo "Remplacement de l'ancien mot de passe..."
-			nouveau=$(echo $1|openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
-			sed "s/$user:$ancien/$user:$nouveau/" etc/shadow
-			#TODO : changer le mdp dans etc/shadow
+			nouveau=$(echo $2 | openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+			sed "s/$user:.*$/$user:$nouveau/" etc/shadow -i
+			echo "Le mot de passe a été changé."
 		else
 			echo "Le mot de passe entré ne correspond pas au mot de passe actuel !"
 		fi
@@ -162,21 +163,17 @@ function commande-finger() {
 }
 
 function commande-write() {
-	echo "En construction"
-	
-	#TODO : verification de la connexion de l'utilisateur ne fonctionne pas
-	#TODO : envoi du message ne foctionne pas
-
 	if test $# -ge 2
 	then
+		destinataireNom=$(echo $1 | sed "s/\@.*$//")
+		destinataireMachine=$(echo $1 | sed "s/.*\@//")
 		echo "Vérification de la connexion du destinataire ..."
-		#if [[ $(echo $(cat etc/liveusers | grep $1)) != "" ]]
-		if [[ "" == "" ]]
+		if [[ $(echo $(cat etc/livehosts | grep $destinataireNom)) != "" ]]
 		then
-			destinataire=$1
+			destinataireMachinePort=$(cat etc/livehosts | grep $destinataireMachine:$destinataireNom | sed "s/$destinataireMachine:$destinataireNom://")
 			echo "Le destinataire est connecté. Envoi du message..."
 			shift
-			echo "receive $@" >> tmp/$destinaire
+			echo "receive $@" >> "tmp/$destinataireMachine-$destinataireNom-fifo-$destinataireMachinePort"
 		else
 			echo "L'utilisateur n'est pas connecté !"
 		fi
@@ -193,7 +190,7 @@ function commande-receive() {
 function commande-exit() {
 	echo "Déconnexion du serveur..."
 	echo "Appuyez sur RETURN pour valider."
-	echo "exit" > last
+	echo "exit" > tmp/last
 	exit -1
 }
 

@@ -13,7 +13,7 @@ PORT="$1"
 
 # Déclaration du tube
 
-FIFO="tmp/$USER-fifo-$PORT"
+FIFO="tmp/hostroot-root-fifo-$PORT"
 
 # Il faut détruire le tube quand le serveur termine pour éviter de
 # polluer /tmp.  On utilise pour cela une instruction trap pour être sur de
@@ -96,9 +96,13 @@ function commande-hosts() {
 }
 
 function commande-user() { #Ajoute un utilisateur sur le réseau
-	if [[ $# -ge 2 ]]
+	if [[ $# -ge 3 ]]
 	then
 		user=$1
+		shift
+		pwd=$1
+		cryptedPwd=$(echo $pwd | openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+		echo $user:$cryptedPwd >> etc/shadow
 		shift
 		for arg in $@
 		do
@@ -114,7 +118,7 @@ function commande-user() { #Ajoute un utilisateur sur le réseau
 			fi
 		done
 	else
-		echo "Utilisez : user nouvel_utils machine1 machine2 ..."
+		echo "Utilisez : user nouvel_utils pass machine1 machine2 ..."
 	fi
 
 }
