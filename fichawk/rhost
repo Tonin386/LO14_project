@@ -1,0 +1,3 @@
+BEGIN{FS=":";print("\nLes machines rattachées au réseau sont : ")}
+{print($1)}
+END{print("")}

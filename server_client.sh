@@ -4,12 +4,21 @@
 # Le script doit être invoqué avec l'argument :                   
 # PORT   le port sur lequel le serveur attend ses clients 
 
-if [ $# -ne 1 ]; then
+if [ $# -lt 1 ]; then
     echo "usage: $(basename $0) PORT"
     exit -1
 fi
 
 PORT="$1"
+machine="$(cat etc/hosts|grep $PORT|cut -d':' -f1)"
+
+if [ $# -eq 1 ]; then
+	user="utilisateur"
+else
+	user=$2
+fi
+
+
 
 # Déclaration du tube
 
@@ -56,7 +65,7 @@ function accept-loop() {
 function interaction() {
    local cmd args
  	while true; do
-		echo -n "user@machine\> "
+		echo -n "$user@$machine\> "
 		read cmd args || exit -1
 		echo $cmd > last
 		fun="commande-$cmd"
@@ -80,36 +89,100 @@ function commande-convert() {
 }
 
 function commande-who() {
-
+	awk -v var="$machine" -f fichawk/who etc/liveusers
 }
 
 function commande-rusers() {
-
+	awk -f fichawk/rusers etc/liveusers
 }
 
 function commande-rhost() {
-
+	awk -f fichawk/rhost etc/hosts
 }
 
 function commande-rconnect() {
-
+	echo "En construction"
 }
 
 function commande-su() {
+	if test $# -eq 2
+	then
+		echo "Vérification du droit de l'utilisateur de se connecter sur cette  machine"
+		if [[ $(cat etc/hosts|grep :$PORT:|grep :$1:) != "" ]]
+		then
+			echo "L'utilisateur $1 peut se connecter sur la machine !"
+			echo "Vérification du mot de passe de $1 !" 
+			mdp=$(echo $(cat etc/shadow | grep root: | cut -d':' -f2) | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+			if [[ $mdp == $2 ]]
+			then
+				echo "Le mot de passe entré est correct, reconnexion en cours..."
 
+				#TODO : Changer dans liveusers :
+				awk -v var=$user -v var1=$1 -f fichawk/su etc/liveusers > etc/temp
+				cat etc/temp > etc/liveusers
+				
+				#TODO : Changer l'utilisateur dans le prompt
+				user=$1
+
+			else
+				echo "Mot de passe incorrect !"
+			fi
+		else
+			echo "L'utilisateur n'est pas autorisé à se connecter sur la machine !"
+		fi
+	else
+		echo "Usage : su nom_utilisateur mot_de_passe"
+	fi
 }
 
 
 function commande-passwd() {
-
+	echo "En construction"
+	if test $# -eq 2
+	then
+		echo "Vérification de la correspondance des mots de passe"
+		ancien=$(echo $(cat etc/shadow | grep toto: | cut -d':' -f2) | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+		if [[ $ancien == $1 ]]
+		then
+			echo "Les mots de passe correspondent."
+			echo "Remplacement de l'ancien mot de passe..."
+			nouveau=$(echo $1|openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+			sed "s/$user:$ancien/$user:$nouveau/" etc/shadow
+			#TODO : changer le mdp dans etc/shadow
+		else
+			echo "Le mot de passe entré ne correspond pas au mot de passe actuel !"
+		fi
+	else
+		echo "Usage : passwd mot_de_passe_actuel nouveau_mot_de_passe"
+	fi
 }
 
 function commande-finger() {
-
+	awk -v var=$1 -f fichawk/finger etc/passwd
 }
 
 function commande-write() {
+	echo "En construction"
+	
+	#TODO : verification de la connexion de l'utilisateur ne fonctionne pas
+	#TODO : envoi du message ne foctionne pas
 
+	if test $# -ge 2
+	then
+		echo "Vérification de la connexion du destinataire ..."
+		#if [[ $(echo $(cat etc/liveusers | grep $1)) != "" ]]
+		if [[ "" == "" ]]
+		then
+			destinataire=$1
+			echo "Le destinataire est connecté. Envoi du message..."
+			shift
+			echo "receive $@" >> tmp/$destinaire
+		else
+			echo "L'utilisateur n'est pas connecté !"
+		fi
+	else
+		echo "Usage : write nom_destinataire message"
+	fi
 }
 
 function commande-receive() {
