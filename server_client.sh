@@ -113,7 +113,7 @@ function commande-su() {
 		then
 			echo "L'utilisateur $1 peut se connecter sur la machine !"
 			echo "Vérification du mot de passe de $1 !" 
-			mdp=$(echo $(cat etc/shadow | grep root: | cut -d':' -f2) | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+			mdp=$(echo $(cat etc/shadow | grep ^$1: | cut -d':' -f2) | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
 			if [[ $mdp == $2 ]]
 			then
 				echo "Le mot de passe entré est correct, reconnexion en cours..."
