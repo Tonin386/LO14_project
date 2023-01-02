@@ -2,18 +2,18 @@
 
 # Ce script implémente un serveur.  
 # Le script doit être invoqué avec l'argument :                   
-# PORT   le port sur lequel le serveur attend ses clients 
+# port   le port sur lequel le serveur attend ses clients 
 
 if [ $# -ne 1 ]; then
-    echo "usage: $(basename $0) PORT"
+    echo "usage: $(basename $0) port"
     exit -1
 fi
 
-PORT="$1"
+port="$1"
 
 # Déclaration du tube
 
-FIFO="tmp/$USER-fifo-$PORT"
+FIFO="tmp/hostroot-root-fifo-$port"
 
 # Il faut détruire le tube quand le serveur termine pour éviter de
 # polluer /tmp.  On utilise pour cela une instruction trap pour être sur de
@@ -30,12 +30,12 @@ trap nettoyage EXIT
 function accept-loop() {
 	next=true
    while $next; do
-		interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
+		interaction < "$FIFO" | netcat -l -p "$port" > "$FIFO"
 		if [[ $(head tmp/last | grep exit) != "" ]]
 		then
 			next=false
-			#Retirer le serveur de la liste des serveurs en cours d'exéuction
-			sed "/$PORT/d" etc/livehosts -i
+			#Retirer le serveur de la liste des serveurs en cours d'exécution
+			sed "/$port/d" etc/livehosts -i
 			rm tmp/last
 		else
 			next=true
@@ -96,9 +96,13 @@ function commande-hosts() {
 }
 
 function commande-user() { #Ajoute un utilisateur sur le réseau
-	if [[ $# -ge 2 ]]
+	if [[ $# -ge 3 ]]
 	then
 		user=$1
+		shift
+		pwd=$1
+		cryptedPwd=$(echo $pwd | openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+		echo $user:$cryptedPwd >> etc/shadow
 		shift
 		for arg in $@
 		do
@@ -114,7 +118,7 @@ function commande-user() { #Ajoute un utilisateur sur le réseau
 			fi
 		done
 	else
-		echo "Utilisez : user nouvel_utils machine1 machine2 ..."
+		echo "Utilisez : user nouvel_utils pass machine1 machine2 ..."
 	fi
 
 }

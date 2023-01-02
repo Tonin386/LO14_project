@@ -2,15 +2,15 @@
 
 # Ce script implémente un serveur.  
 # Le script doit être invoqué avec l'argument :                   
-# PORT   le port sur lequel le serveur attend ses clients 
+# port   le port sur lequel le serveur attend ses clients 
 
 if [ $# -lt 1 ]; then
-    echo "usage: $(basename $0) PORT"
-    exit -1
+	echo "usage: $(basename $0) port"
+	exit -1
 fi
 
-PORT="$1"
-machine="$(cat etc/hosts|grep $PORT|cut -d':' -f1)"
+port="$1"
+machine="$(cat etc/livehosts|grep $port|cut -d':' -f1)"
 
 if [ $# -eq 1 ]; then
 	user="utilisateur"
@@ -22,7 +22,7 @@ fi
 
 # Déclaration du tube
 
-FIFO="tmp/$USER-fifo-$$"
+FIFO="tmp/$machine-$user-fifo-$port"
 
 # Il faut détruire le tube quand le serveur termine pour éviter de
 # polluer /tmp.  On utilise pour cela une instruction trap pour être sur de
@@ -38,17 +38,20 @@ trap nettoyage EXIT
 
 function accept-loop() {
 	next=true
-   while $next; do
-		interaction < "$FIFO" | netcat -l -p "$PORT" > "$FIFO"
-		if [[ $(head last | grep exit) != "" ]]
+	while $next; do
+		interaction < "$FIFO" | netcat -l -p "$port" > "$FIFO"
+		if [[ $(head tmp/last | grep exit) != "" ]]
 		then
 			next=false
-			#Retirer le serveur de la liste des serveurs en cours d'exéuction
-			sed "/$PORT/d" etc/livehosts -i
+			
+			#Retirer le serveur de la liste des serveurs en cours d'exécution
+			sed "/$port/d" etc/livehosts -i				
+
+			rm tmp/last
 		else
 			next=true
 		fi
-   done
+	done
 }
 
 # La fonction interaction lit les commandes du client sur entrée standard 
@@ -63,25 +66,25 @@ function accept-loop() {
 # si elle existe; sinon elle envoie une réponse d'erreur.                    
 
 function interaction() {
-   local cmd args
- 	while true; do
+	local cmd args
+	while true; do
 		echo -n "$user@$machine\> "
 		read cmd args || exit -1
-		echo $cmd > last
+		echo $cmd > tmp/last
 		fun="commande-$cmd"
 		if [ "$(type -t $fun)" = "function" ]; then
-		    $fun $args
+			$fun $args
 		else
-		    commande-non-comprise $fun $args
+			commande-non-comprise $fun $args
 		fi
-    done
+	done
 }
 
 # Les fonctions implémentant les différentes commandes du serveur
 
 
 function commande-non-comprise () {
-   echo "Commande inconnue"
+	echo "Commande inconnue."
 }
 
 function commande-convert() {
@@ -101,34 +104,61 @@ function commande-rhost() {
 }
 
 function commande-rconnect() {
-	echo "En construction"
+
+	if [[ $# -eq 2 ]]
+	then
+		if [[ $(cat etc/hosts | grep $1 | grep $user) != "" ]]
+		then
+			mdp=$(echo $(cat etc/shadow | grep $user | sed "s/$user://") | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+			if [[ $mdp == $2 ]]
+			then
+				echo "Le mot de passe entré est correct, reconnexion en cours..."
+
+				sed "s/$machine:$user:$port/$1:$user:$port/" etc/livehosts -i
+
+				echo "$machine" >> "tmp/$user-route"
+				rm $FIFO
+				machine=$1
+				FIFO="tmp/$machine-$user-fifo-$port"
+				[ -e "FIFO" ] || mkfifo "$FIFO"
+			else
+				echo "Mot de passe incorrect !"
+			fi
+		else
+			echo "L'utilisateur n'existe pas sur la machine $1."
+		fi
+	else
+		echo "Usage : rconnect nom_machine mot_de_passe"
+	fi
+
 }
 
 function commande-su() {
 	if test $# -eq 2
 	then
 		echo "Vérification du droit de l'utilisateur de se connecter sur cette  machine"
-		if [[ $(cat etc/hosts|grep :$PORT:|grep :$1:) != "" ]]
+		if [[ $(cat etc/hosts | grep $machine | grep $1) != "" ]]
 		then
-			echo "L'utilisateur $1 peut se connecter sur la machine !"
-			echo "Vérification du mot de passe de $1 !" 
-			mdp=$(echo $(cat etc/shadow | grep root: | cut -d':' -f2) | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+			echo "L'utilisateur $1 peut se connecter sur la machine."
+			echo "Vérification du mot de passe de $1." 
+			mdp=$(echo $(cat etc/shadow | grep $1 | sed "s/$1://") | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
 			if [[ $mdp == $2 ]]
 			then
 				echo "Le mot de passe entré est correct, reconnexion en cours..."
 
-				#TODO : Changer dans liveusers :
-				awk -v var=$user -v var1=$1 -f fichawk/su etc/liveusers > etc/temp
+				sed "s/$machine:$user:$port/$machine:$1:$port/" etc/livehosts -i
 				cat etc/temp > etc/liveusers
-				
-				#TODO : Changer l'utilisateur dans le prompt
+
 				user=$1
+				rm $FIFO
+				FIFO="tmp/$machine-$user-fifo-$port"
+				[ -e "FIFO" ] || mkfifo "$FIFO"
 
 			else
 				echo "Mot de passe incorrect !"
 			fi
 		else
-			echo "L'utilisateur n'est pas autorisé à se connecter sur la machine !"
+			echo "L'utilisateur n'est pas autorisé à se connecter sur la machine."
 		fi
 	else
 		echo "Usage : su nom_utilisateur mot_de_passe"
@@ -141,14 +171,14 @@ function commande-passwd() {
 	if test $# -eq 2
 	then
 		echo "Vérification de la correspondance des mots de passe"
-		ancien=$(echo $(cat etc/shadow | grep toto: | cut -d':' -f2) | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+		ancien=$(echo $(head etc/shadow | grep $user | sed "s/$user://") | openssl enc -base64 -d -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
 		if [[ $ancien == $1 ]]
 		then
 			echo "Les mots de passe correspondent."
 			echo "Remplacement de l'ancien mot de passe..."
-			nouveau=$(echo $1|openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
-			sed "s/$user:$ancien/$user:$nouveau/" etc/shadow
-			#TODO : changer le mdp dans etc/shadow
+			nouveau=$(echo $2 | openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
+			sed "s/$user:.*$/$user:$nouveau/" etc/shadow -i
+			echo "Le mot de passe a été changé."
 		else
 			echo "Le mot de passe entré ne correspond pas au mot de passe actuel !"
 		fi
@@ -162,21 +192,17 @@ function commande-finger() {
 }
 
 function commande-write() {
-	echo "En construction"
-	
-	#TODO : verification de la connexion de l'utilisateur ne fonctionne pas
-	#TODO : envoi du message ne foctionne pas
-
 	if test $# -ge 2
 	then
+		destinataireNom=$(echo $1 | sed "s/\@.*$//")
+		destinataireMachine=$(echo $1 | sed "s/.*\@//")
 		echo "Vérification de la connexion du destinataire ..."
-		#if [[ $(echo $(cat etc/liveusers | grep $1)) != "" ]]
-		if [[ "" == "" ]]
+		if [[ $(echo $(cat etc/livehosts | grep $destinataireNom)) != "" ]]
 		then
-			destinataire=$1
+			destinataireMachinePort=$(cat etc/livehosts | grep $destinataireMachine:$destinataireNom | sed "s/$destinataireMachine:$destinataireNom://")
 			echo "Le destinataire est connecté. Envoi du message..."
 			shift
-			echo "receive $@" >> tmp/$destinaire
+			echo "receive $@" >> "tmp/$destinataireMachine-$destinataireNom-fifo-$destinataireMachinePort"
 		else
 			echo "L'utilisateur n'est pas connecté !"
 		fi
@@ -191,10 +217,32 @@ function commande-receive() {
 }
 
 function commande-exit() {
-	echo "Déconnexion du serveur..."
-	echo "Appuyez sur RETURN pour valider."
-	echo "exit" > last
-	exit -1
+	echo "exit" > tmp/last
+
+	if [[ -f "tmp/$user-route" ]]
+	then
+		echo "Retour sur la machine précédente."
+
+		rm $FIFO
+
+		new_machine=$(tail tmp/$user-route -n 1)
+		sed "s/$machine:$user:$port/$new_machine:$user:$port/" etc/livehosts -i
+		machine=$new_machine
+
+		echo $(head -n -1 "tmp/$user-route") > "tmp/$user-route"
+
+		FIFO="tmp/$machine-$user-fifo-$port"
+		[ -e "FIFO" ] || mkfifo "$FIFO"
+
+		if [[ $(head "tmp/$user-route") == "" ]]
+		then
+			rm "tmp/$user-route"
+		fi
+	else
+		echo "Déconnexion du serveur..."
+		echo "Appuyez sur RETURN pour valider."
+		exit -1
+	fi
 }
 
 # On accepte et traite les connexions
