@@ -34,7 +34,8 @@ then
 					echo $infos >> etc/liveusers
 	
 					inf=$(cat etc/passwd|grep $2|cut -d'|' -f1-4)
-					sed "s/$inf.*$/$inf|$dates $heure/" etc/passwd -i
+					message=$(cat etc/passwd|grep $2|cut -d'|' -f6)
+					sed "s/$2|.*$/$inf|$dates $heure|$message/" etc/passwd -i
 
 					./server_client.sh $port $2&
 					sleep 1

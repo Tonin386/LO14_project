@@ -1,6 +1,0 @@
-BEGIN{FS="+";OFS="+"}
-$1!~var{print}
-$1~var{sub(var,var1,$1);print}
-
-#awk -v var="tata" -v var1="toto" -f testsu ./etc/liveusers > ./etc/temp
-#cat ./etc/temp > ./etc/liveusers

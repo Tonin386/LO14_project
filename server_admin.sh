@@ -77,22 +77,25 @@ function commande-non-comprise () {
 
 function commande-host() { #Ajoute une machine sur le réseau
 	#TODO: Ajouter la vérification que la machine n'existe pas déjà
-	if [[ $# -eq 1 ]]
+	if [[ $# -ge 1 ]]
 	then
-		echo "$1:" >> etc/hosts
-		echo "La machine $1 a été ajoutée au réseau."
+		for arg in $@
+		do
+			if [[ $(cat etc/hosts | grep "^$arg:.*$") == "" ]]
+			then					
+				echo "$arg:" >> etc/hosts
+				echo "La machine $arg a été ajoutée au réseau."
+			else
+				echo "La machine $arg n'a pas été ajoutée car elle est déjà présente sur le réseau."
+			fi
+		done
 	else
-		echo "Utilisez : host nom_machine"
+		echo "Utilisez : host nom_machine1 nom_machine2 ..."
 	fi
 }
 
 function commande-hosts() {
-	# while read line
-	# do
-	# 	sed "s/://" line
-	# done < etc/hosts
-	#TODO: Améliorer la fonctionnalité
-	sed "s/://" etc/hosts
+	awk -f fichawk/rhost etc/hosts
 }
 
 function commande-user() { #Ajoute un utilisateur sur le réseau
@@ -103,7 +106,7 @@ function commande-user() { #Ajoute un utilisateur sur le réseau
 		pwd=$1
 		cryptedPwd=$(echo $pwd | openssl enc -base64 -e -aes-256-cbc -salt -pass pass:LO14 -pbkdf2)
 		echo $user:$cryptedPwd >> etc/shadow
-		echo "$user|x|||$(date)" >> etc/passwd
+		echo "$user|x|||$(date)|" >> etc/passwd
 		shift
 		for arg in $@
 		do
@@ -128,10 +131,9 @@ function commande-deluser() {
 	then
 		for arg in $@
 		do
-			rm "users/$arg"
-			sed "s/$user://" etc/hosts -i
-			sed "s/$user:.*$//" etc/shadow -i
-			sed "s/$user|.*$//" etc/passwd -i
+			sed "s/$arg://" etc/hosts -i
+			sed "/^$arg:.*$/d" etc/shadow -i
+			sed "/^$arg|.*$/d" etc/passwd -i
 		done
 	else
 		echo "Usage : deluser util1 util2 ..."
@@ -141,19 +143,48 @@ function commande-deluser() {
 function commande-wall() { #Envoie un message à tous les utilisateurs connectés
 	if [ $# -ge 1 ]
 	then
+		if [ $1 == "-n" ]
+		then
+			cat etc/passwd > tmp/passtemp
+			shift
+			while read line
+			do
+				u=$(echo $line | awk -F "|" '{print $1}')
+				if [[ $(cat etc/livehosts | grep $u) == "" ]]
+				then
+					t=$@
+					awk -v name=$u -v message="$t" -vOFS='|' -f fichawk/wall etc/passwd > tmp/temp
+					cat tmp/temp > etc/passwd
+					rm tmp/temp
+				fi
+			done < tmp/passtemp
+			rm tmp/passtemp
+		fi
+
 		online=$(echo $(ls tmp | grep fifo))
 		for u in $online
 		do
 			echo "receive $@" >> tmp/$u
 		done
 	else
-		echo "Utilisez : wall message"
+		echo "Utilisez : wall [-n] message"
 	fi
 }
 
 function commande-afinger() {
-	echo "To do"
-	echo "Voilà la commande fonctionne"
+	if [[ $# -ge 3 ]]
+	then
+		name=$1
+		email=$2
+		shift
+		shift
+		full_name=$@
+		awk -v name="$name" -v email="$email" -v full_name="$full_name" -vOFS="|" -f fichawk/afinger etc/passwd > tmp/temp
+		cat tmp/temp > etc/passwd
+		rm tmp/temp
+	else
+		echo "Usage : afinger util email nom_complet"
+	fi
 }
 
 function commande-exit() {
@@ -167,7 +198,6 @@ function commande-receive() {
 	echo " "
 	echo "$@"
 }
-
 # On accepte et traite les connexions
 
 accept-loop	

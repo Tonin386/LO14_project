@@ -18,6 +18,17 @@ else
 	user=$2
 fi
 
+saved_message=$(cat etc/passwd | grep $user | cut -d '|' -f6)
+if [[ $saved_message != "" ]]
+then
+	echo "Vous avez reçu un message pendant que vous étiez déconnecté : $saved_message"
+	awk -v name=$user -v message="" -vOFS='|' -f fichawk/wall etc/passwd > tmp/temp
+	cat tmp/temp > etc/passwd
+	rm tmp/temp
+else
+	echo "Pas de nouveau message."
+fi
+
 
 
 # Déclaration du tube
@@ -85,10 +96,6 @@ function interaction() {
 
 function commande-non-comprise () {
 	echo "Commande inconnue."
-}
-
-function commande-convert() {
-	echo $@ | tr '[a-z]' '[A-Z]' # tr '[:lower:upper]'
 }
 
 function commande-who() {
@@ -159,6 +166,17 @@ function commande-su() {
 				rm $FIFO
 				FIFO="tmp/$machine-$user-fifo-$port"
 				[ -e "FIFO" ] || mkfifo "$FIFO"
+				
+				saved_message=$(cat etc/passwd | grep $user | cut -d '|' -f6)
+				if [[ $saved_message != "" ]]
+				then
+					echo "Vous avez reçu un message pendant que vous étiez déconnecté : $saved_message"
+					awk -v name=$user -v message="" -vOFS='|' -f fichawk/wall etc/passwd > tmp/temp
+					cat tmp/temp > etc/passwd
+					rm tmp/temp
+				else
+					echo "Pas de nouveau message."
+				fi
 
 			else
 				echo "Mot de passe incorrect !"
@@ -172,6 +190,7 @@ function commande-su() {
 }
 
 function commande-passwd() {
+	echo "Changement de mot de passe"
 	if test $# -eq 2
 	then
 		echo "Vérification de la correspondance des mots de passe"

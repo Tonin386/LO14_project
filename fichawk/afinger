@@ -1,0 +1,2 @@
+BEGIN{FS="|"}
+$1==name{$3=email;$4=full_name}1
