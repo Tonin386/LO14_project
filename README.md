@@ -22,7 +22,10 @@ Create a `shadow` file in `etc` directory.
 Add this line:
 	- `root:U2FsdGVkX1+Xhe5h7UcWGXJD2pZcTiaC1tGVJNTv4UQ=`
 
-Then you can use the admin mode. The password is: `root`
-Connect to admin mode with : `bash rvsh.sh -admin`
-You should first setup some users and machines while in admin mode. Then, you can connect as a user using: `bash rvsh.sh -connect machine user`
-Once connected as a user, type `help` for a list command
+Then you can use the admin mode. The password is: `root`.
+
+Connect to admin mode with : `bash rvsh.sh -admin`.
+
+You should first setup some users and machines while in admin mode. Then, you can connect as a user using: `bash rvsh.sh -connect machine user`.
+
+Once connected as a user, type `help` for a list command.
