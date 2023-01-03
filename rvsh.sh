@@ -32,6 +32,10 @@ then
 					heure=$(date | cut -d' ' -f5)
 					infos="$2|$1|$dates|$heure"
 					echo $infos >> etc/liveusers
+	
+					inf=$(cat etc/passwd|grep $2|cut -d'|' -f1-4)
+					sed "s/$inf.*$/$inf|$dates $heure/" etc/passwd -i
+
 					./server_client.sh $port $2&
 					sleep 1
 					nc localhost $port
