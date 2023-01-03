@@ -3,8 +3,8 @@ Julien &amp; Antonin's LO14 project for A22. Creating a virtual network of machi
 
 ## File syntax
 
-	etc/hosts: machine_name:port:user1:user2:
-	etc/passwd: username:password:id: #Yet to be defined more precisely
+	etc/hosts: machine_name:user1:user2:
+	etc/passwd: username|x|email|full name|last connection date|[pending message]
 
 ## Global idea
 
@@ -16,10 +16,13 @@ The root machine server script will be a bit different, because it proposes diff
 
 Create a `hosts` file in `etc` directory.
 Add this line:
-	- `hostroot:8000:root:`
+	- `hostroot:root:`
 
 Create a `shadow` file in `etc` directory.
 Add this line:
 	- `root:U2FsdGVkX1+Xhe5h7UcWGXJD2pZcTiaC1tGVJNTv4UQ=`
 
-Then you (for now) use the admin mode. The password is: `root`
+Then you can use the admin mode. The password is: `root`
+Connect to admin mode with : `bash rvsh.sh -admin`
+You should first setup some users and machines while in admin mode. Then, you can connect as a user using: `bash rvsh.sh -connect machine user`
+Once connected as a user, type `help` for a list command
