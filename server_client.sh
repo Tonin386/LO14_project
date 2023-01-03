@@ -104,7 +104,6 @@ function commande-rhost() {
 }
 
 function commande-rconnect() {
-
 	if [[ $# -eq 2 ]]
 	then
 		if [[ $(cat etc/hosts | grep $1 | grep $user) != "" ]]
@@ -173,7 +172,6 @@ function commande-su() {
 }
 
 function commande-passwd() {
-	echo "En construction"
 	if test $# -eq 2
 	then
 		echo "Vérification de la correspondance des mots de passe"
@@ -194,7 +192,50 @@ function commande-passwd() {
 }
 
 function commande-finger() {
-	awk -v var=$1 -f fichawk/finger etc/passwd
+	if test $# -eq 0
+	then
+		while read lignes
+		do
+			login=$(echo $lignes|cut -d'|' -f1)
+			echo "Login : $login"
+			nom=$(echo $lignes|cut -d'|' -f3)
+			echo "Nom : $nom"
+			email=$(echo $lignes|cut -d'|' -f4)
+			echo "Email : $email"
+			jour=$(echo $lignes|cut -d'|' -f5)
+			if [[ $(cat etc/livehosts|grep :$login) != "" ]]
+			then
+				echo "Connecté depuis : $jour"
+			else
+				echo "Dernière connexion : $jour"
+			fi
+			echo ""
+		done < etc/passwd
+	else
+		for i in $*
+		do
+			login=$i
+			if [[ $(cat etc/passwd | grep $login) != "" ]]
+			then
+				ligne=$(cat etc/passwd | grep $login)
+				echo "Login : $login"
+				nom=$(echo $ligne|cut -d'|' -f3)
+				echo "Nom : $nom"
+				email=$(echo $ligne|cut -d'|' -f4)
+				echo "Email : $email"
+				jour=$(echo $ligne|cut -d'|' -f5)
+				if [[ $(cat etc/livehosts|grep :$login) != "" ]]
+				then
+					echo "Connecté depuis : $jour"
+				else
+					echo "Dernière connexion : $jour"
+				fi
+			else
+				echo "L'utilisateur $login n'apparait pas parmi les utilisateurs du réseau."
+			fi
+			echo ""
+		done
+	fi
 }
 
 function commande-write() {
