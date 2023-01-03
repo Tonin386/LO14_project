@@ -298,6 +298,17 @@ function commande-exit() {
 	fi
 }
 
+function commande-help() {
+	echo "Les commandes disponibles sur le mode connect sont les suivantes :"
+	echo "who : Afficher les utilisateurs connectés sur la même machine."
+	echo "rusers : Afficher les utilisateurs connectés sur le réseau."	
+	echo "rhost : Afficher les machines rattachées au réseau."
+	echo "rconnect nom_machine mot_de_passe : Se connecter sur une autre machine."
+	echo "su nom_utilisateur mot_de_passe : Changer d'utilisateur."
+	echo "passwd mot_de_passe_actuel nouveau_mot_de_passe : Changer son mot de passe."
+	echo "finger [utilisateurs] : Afficher les infos des utilisateurs indiqués ou de tous les utilisateurs rattachés au réseau."
+	echo "write utilisateur@machine message : Envoyer un message à un autre utilisateur."
+}	
 # On accepte et traite les connexions
 
 accept-loop
