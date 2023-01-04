@@ -189,6 +189,7 @@ function commande-afinger() {
 
 function commande-exit() {
 	echo "Déconnexion du serveur..."
+	sed "/$root|$hostroot.*/d" etc/liveusers -i
 	echo "Appuyez sur RETURN pour valider."
 	echo "exit" > tmp/last
 	exit -1

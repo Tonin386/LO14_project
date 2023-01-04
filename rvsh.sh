@@ -71,6 +71,18 @@ then
 
 			signature="hostroot:root:$port"
 			echo $signature >> etc/livehosts
+			
+
+			signature="$1:$2:$port"
+			echo $signature >> etc/livehosts
+			dates=$(date | egrep '.*[0-9]{4}' -o)
+			heure=$(date | cut -d' ' -f5)
+			infos="root|hostroot|$dates|$heure"
+			echo $infos >> etc/liveusers
+
+			inf=$(cat etc/passwd|grep root|cut -d'|' -f1-4)
+			message=$(cat etc/passwd|grep root|cut -d'|' -f6)
+			sed "s/root|.*$/$inf|$dates $heure|$message/" etc/passwd -i
 
 			echo "Lancement du serveur de la machine hostroot"
 			./server_admin.sh $port&

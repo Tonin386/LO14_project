@@ -162,6 +162,10 @@ function commande-su() {
 				heure=$(date | cut -d' ' -f5)
 				sed "s/$user|$machine.*/$1|$machine|$dates|$heure/" etc/liveusers -i
 
+				inf=$(cat etc/passwd|grep $1|cut -d'|' -f1-4)
+				message=$(cat etc/passwd|grep $1|cut -d'|' -f6)
+				sed "s/$1|.*$/$inf|$dates $heure|$message/" etc/passwd -i
+
 				user=$1
 				rm $FIFO
 				FIFO="tmp/$machine-$user-fifo-$port"
