@@ -73,8 +73,6 @@ then
 			echo $signature >> etc/livehosts
 			
 
-			signature="$1:$2:$port"
-			echo $signature >> etc/livehosts
 			dates=$(date | egrep '.*[0-9]{4}' -o)
 			heure=$(date | cut -d' ' -f5)
 			infos="root|hostroot|$dates|$heure"
