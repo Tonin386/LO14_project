@@ -217,23 +217,15 @@ function commande-passwd() {
 function commande-finger() {
 	if test $# -eq 0
 	then
-		while read lignes
-		do
-			login=$(echo $lignes|cut -d'|' -f1)
-			echo "Login : $login"
-			nom=$(echo $lignes|cut -d'|' -f3)
-			echo "Nom : $nom"
-			email=$(echo $lignes|cut -d'|' -f4)
-			echo "Email : $email"
-			jour=$(echo $lignes|cut -d'|' -f5)
-			if [[ $(cat etc/livehosts|grep :$login) != "" ]]
-			then
-				echo "Connecté depuis : $jour"
-			else
-				echo "Dernière connexion : $jour"
-			fi
-			echo ""
-		done < etc/passwd
+		lignes=$(cat etc/passwd | grep $user)
+		echo "Login : $user"
+		nom=$(echo $lignes|cut -d'|' -f3)
+		echo "Nom : $nom"
+		email=$(echo $lignes|cut -d'|' -f4)
+		echo "Email : $email"
+		jour=$(echo $lignes|cut -d'|' -f5)
+		echo "Connecté depuis : $jour"
+		echo ""
 	else
 		for i in $*
 		do
