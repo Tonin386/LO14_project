@@ -44,7 +44,7 @@ trap nettoyage EXIT
 
 # on crée le tube nommé
 
-[ -e "FIFO" ] || mkfifo "$FIFO"
+[ -e "$FIFO" ] || mkfifo "$FIFO"
 
 
 function accept-loop() {
